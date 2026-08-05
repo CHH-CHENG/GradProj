@@ -4,10 +4,18 @@ __pycache__/
 *$py.class
 
 # C extensions
-*.so
+.so
 
 # mine
+
+config/copernicus.yaml
 data/
+__pycache__/
+*.pyc
+
+
+
+
 
 # Distribution / packaging
 .Python
