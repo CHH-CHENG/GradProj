@@ -6,16 +6,50 @@ __pycache__/
 # C extensions
 .so
 
-# mine
+# 我
 
 config/copernicus.yaml
-data/
-__pycache__/
+
+data/**/*
+!data/**/.gitkeep
+!data/**/README.md
+
+# 更精确的控制（根据你的结构）
+# Sentinel2 数据（大型遥感数据）
+data/Sentinel2/zip/*
+data/Sentinel2/SAFE/*
+data/Sentinel2/roi/*
+data/Sentinel2/indices/*
+data/Sentinel2/csv/*
+
+# 但保留这些文件
+!data/Sentinel2/zip/.gitkeep
+!data/Sentinel2/SAFE/.gitkeep
+!data/Sentinel2/roi/.gitkeep
+!data/Sentinel2/indices/.gitkeep
+!data/Sentinel2/csv/.gitkeep
+
+# DEM 数据
+data/DEM/*
+!data/DEM/.gitkeep
+!data/DEM/README.md
+
+# Feature 数据
+data/feature/*
+!data/feature/.gitkeep
+
+# Result 数据
+data/result/*
+!data/result/.gitkeep
+
+# Inventory 数据
+data/inventory/*
+!data/inventory/.gitkeep
+!data/inventory/README.md
+
+
+
 *.pyc
-
-
-
-
 
 # Distribution / packaging
 .Python

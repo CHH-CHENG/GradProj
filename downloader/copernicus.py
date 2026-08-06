@@ -82,7 +82,7 @@ def search_products(lon, lat, start_date, end_date, cloud=20):
 # =========================
 # 下载单个产品
 # =========================
-def download_product(product_id, get_token_func, out_dir="data/raw"):
+def download_product(product_id, get_token_func, out_dir="data/Sentinel2/zip"):
     import os
     import requests
     import time
