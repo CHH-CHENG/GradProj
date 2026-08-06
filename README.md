@@ -54,7 +54,7 @@ ProjCode/
 │
 ├── data/
 │   │
-│   ├── inventory/                 ←★★★★★ 样地调查数据
+│   ├── inventory/                 
 │   │      inventory.xlsx
 │   │      plots.shp
 │   │      plots.geojson
