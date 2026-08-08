@@ -6,50 +6,26 @@ __pycache__/
 # C extensions
 .so
 
-# 我
+# ============================================================
+# 项目专属编辑部分
+# ============================================================
 
+# Copernicus 下载账号（含敏感信息，勿上传）
 config/copernicus.yaml
 
-data/**/*
-!data/**/.gitkeep
+# 本地 conda 环境（若在项目内创建）
+/.conda/
+
+# ============================================================
+# data 目录
+# 需求：所有文件夹结构 + 所有 README 上传；文件夹内的数据文件不上传。
+# （大文件：遥感 SAFE/zip/tif、调查数据 accdb/xlsx 等一律忽略）
+# ============================================================
+data/**
+!data/**/
+!data/README.md
 !data/**/README.md
-
-# 更精确的控制（根据你的结构）
-# Sentinel2 数据（大型遥感数据）
-data/Sentinel2/zip/*
-data/Sentinel2/SAFE/*
-data/Sentinel2/roi/*
-data/Sentinel2/indices/*
-data/Sentinel2/csv/*
-
-# 但保留这些文件
-!data/Sentinel2/zip/.gitkeep
-!data/Sentinel2/SAFE/.gitkeep
-!data/Sentinel2/roi/.gitkeep
-!data/Sentinel2/indices/.gitkeep
-!data/Sentinel2/csv/.gitkeep
-
-# DEM 数据
-data/DEM/*
-!data/DEM/.gitkeep
-!data/DEM/README.md
-
-# Feature 数据
-data/feature/*
-!data/feature/.gitkeep
-
-# Result 数据
-data/result/*
-!data/result/.gitkeep
-
-# Inventory 数据
-data/inventory/*
-!data/inventory/.gitkeep
-!data/inventory/README.md
-
-
-
-*.pyc
+!data/**/.gitkeep
 
 # Distribution / packaging
 .Python
