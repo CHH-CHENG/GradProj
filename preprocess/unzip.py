@@ -2,6 +2,20 @@ import zipfile
 from pathlib import Path
 
 
+def get_safe_name(zip_path):
+    """
+    从 zip 内部读取真实的顶层目录名（SAFE 产品名）。
+
+    Copernicus 下载的 zip 文件名是 UUID，内部顶层目录才是
+    S2A_MSIL1C_...SAFE 这样的产品名，因此不能依赖 zip 文件名判断。
+    """
+    with zipfile.ZipFile(zip_path, "r") as z:
+        for name in z.namelist():
+            if "/" in name:
+                return name.split("/")[0]
+    return None
+
+
 def unzip_all(
         zip_dir="data/Sentinel2/zip",
         out_dir="data/Sentinel2/SAFE",
@@ -33,7 +47,12 @@ def unzip_all(
 
     for zip_file in zip_files:
 
-        safe_name = zip_file.stem + ".SAFE"
+        # 真实 SAFE 目录名（来自 zip 内部，而非 zip 文件名）
+        safe_name = get_safe_name(zip_file)
+
+        if safe_name is None:
+            print(f"无法识别 zip 内部结构，跳过: {zip_file.name}")
+            continue
 
         safe_path = out_dir / safe_name
 

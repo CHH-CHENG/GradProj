@@ -1,11 +1,16 @@
 import requests
 import os
 import time
+import zipfile
 import yaml
+from pathlib import Path
 
 AUTH_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products"
 DOWNLOAD_URL = "https://download.dataspace.copernicus.eu/odata/v1/Products({})/$value"
+
+# 配置文件基于本文件位置定位，避免依赖当前运行目录
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "copernicus.yaml"
 
 
 # =========================
@@ -18,7 +23,7 @@ def get_credentials():
     if user and pwd:
         return user, pwd
 
-    with open("config/copernicus.yaml") as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     return cfg["username"], cfg["password"]
@@ -55,6 +60,7 @@ def search_products(lon, lat, start_date, end_date, cloud=20):
         f"and ContentDate/Start le {end_date}T23:59:59.999Z "
         f"and Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'cloudCover' "
         f"and att/OData.CSC.DoubleAttribute/Value lt {cloud})"
+        f"&$orderby=ContentDate/Start desc"
         f"&$top=20"
     )
 
@@ -138,8 +144,13 @@ def download_product(product_id, get_token_func, out_dir="data/Sentinel2/zip"):
                         if chunk:
                             f.write(chunk)
 
+            # ====完整性校验 + 改名
             # =========================
-            # 5️⃣ 下载完成 → 改名
+            if not zipfile.is_zipfile(part_path):
+                print(f"完整性校验失败，删除后重下: {product_id}")
+                os.remove(part_path)
+                raise Exception("下载文件不是有效的zip")
+
             # =========================
             os.rename(part_path, final_path)
             print(f"下载完成: {product_id}")
