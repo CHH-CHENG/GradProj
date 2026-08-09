@@ -75,16 +75,17 @@ ProjCode/
 │   └── preprocess.yaml          # 预处理参数配置
 │
 ├── data/                        # 数据目录（不上传核心数据）
-│   ├── inventory/               # 样地调查数据
+│   ├── inventory/               # 蓄积量标签数据
+│   │   └── Finland_NFI_2023_GSV/  # 芬兰 MS-NFI 2023 蓄积量栅格（总/松/云/桦）
 │   │
-│   ├── Sentinel2/               # 遥感数据
-│   │   ├── zip/                 # 原始压缩包
-│   │   ├── SAFE/                # 解压产品
-│   │   ├── roi/                 # 裁剪影像
+│   ├── Sentinel2/               # 遥感数据（芬兰典型区：纯林+混交）
+│   │   ├── zip/Finland_PureMixed/   # 原始压缩包（8 个 L2A）
+│   │   ├── SAFE/Finland_PureMixed/  # 解压产品（8 个 SAFE）
+│   │   ├── roi/Finland_PureMixed/   # 裁剪影像（待生成）
 │   │   └── indices/             # 植被指数
 │   │
 │   ├── DEM/                     # 地形数据
-│   │   ├── raw/                 # 原始DEM
+│   │   ├── raw/Finland_DEM_10m_2019/  # 芬兰 MML 10m DEM
 │   │   └── roi/                 # 裁剪DEM
 │   │
 │   ├── feature/                 # 特征数据（samples.csv）
@@ -92,7 +93,9 @@ ProjCode/
 │   └── result/                  # 模型输出结果
 │
 ├── downloader/                  # 数据下载模块
-│   └── copernicus.py
+│   └── copernicus.py            # Copernicus 下载（矩形查询/按 tile 去重）
+│
+├── download_finland.py          # 芬兰典型区（纯林/混交）影像采集脚本
 │
 ├── preprocess/                  # 数据预处理模块
 │   ├── unzip.py                 # 解压 SAFE
@@ -107,7 +110,7 @@ ProjCode/
 │
 ├── DEVELOP_LOG.md               # 开发日志
 │
-├── 项目开发文档.docx             # 项目开发详细信息
+├── 项目开发文档.docx.md          # 项目开发详细信息（含研究决策记录）
 │
 ├── README.md                    # 当前文件
 │
@@ -122,31 +125,29 @@ ProjCode/
 
 本项目使用三类核心数据：
 
-### 4.1 样地数据（Ground Truth）
+### 4.1 蓄积量标签数据（Ground Truth）
 
-- **来源**：导师提供/通过互联网获取
-- **类型**：
-  - 混交林（xlsx）
-  - 纯林（accdb）
-- **内容**：
-  - 样地位置（经纬度）
-  - 森林蓄积量（标签）
+- **来源**：Paituli / Etsin Fairdata 开放平台（芬兰 Luke）
+- **当前已就位**：
+  - **芬兰 MS-NFI 2023 蓄积量栅格**（`inventory/Finland_NFI_2023_GSV/`）：Luke 发布的全国蓄积量空间分布图（总蓄积量 + 松/云/桦分树种，m³/ha，16m 栅格，CC BY 4.0），作为蓄积量标签/参考
+- **内容**：全国 16m 栅格（2023 年度，数据时点 2023-07-31），4 个主题（总/松/云/桦）
+- **说明**：MS-NFI 为遥感估计值（参考标签），存在同源偏差；详细说明见研究决策记录 8.8
 
 ### 4.2 遥感数据（Sentinel-2）
 
-- **来源**：Copernicus Data Space
-- **获取方式**：自动下载（API）
-- **数据结构**：
-  - SAFE 格式
-  - 多光谱波段（10m / 20m / 60m）
+- **来源**：Copernicus Data Space（CDSE）
+- **获取方式**：自动下载（API），`download_finland.py` 按典型区采集，每 tile 取云量最少一期
+- **当前数据（芬兰典型区）**：8 个 L2A 整 tile（2023 生长季），按研究用途分为：
+  - **纯林区**（拉普兰纯松林，27.20E/68.76N）：`T35WMR/WMS/WNR/WNS`（2023-08-08）
+  - **混交区**（24.97E/66.06N）：`T34WFT/WFU`、`T35WMN/WMP`（2023-07-10）
+- **数据结构**：SAFE 格式，多光谱波段（10m/20m/60m）
 
 ### 4.3 地形数据（DEM）
 
-- **用途**：提供地形特征（高程、坡度等）
-- **来源**：
-  - SRTM / ASTER GDEM / Copernicus DEM
-- **当前策略**：
-  - 手动下载 + 项目内使用
+- **用途**：提供地形特征（高程、坡度、坡向等）
+- **当前已就位**：
+  - **芬兰 MML 10m DEM 2019**（`DEM/raw/Finland_DEM_10m_2019/`）：芬兰全国最精确 DEM，10m、N2000、EPSG:3067、垂直精度约 1.4m，1523 个分块 GeoTIFF
+- **策略**：按研究区裁剪（`DEM/roi/`），与 Sentinel-2 特征对齐
 
 ---
 
@@ -159,19 +160,31 @@ conda env create -f environment.yml
 conda activate GradProj
 ```
 
+> ⚠️ 需安装 JP2 解码插件（读取 Sentinel-2 L2A 必需）：`conda install -c conda-forge libgdal-jp2openjpeg`
+
 ### 5.2 配置账号
 
-在 `config/copernicus.yaml` 中填写：
+在 `config/copernicus.yaml` 中填写（仅下载影像时需要）：
 
 ```yaml
 username: your_email
 password: your_password
 ```
 
-### 5.3 运行主程序
+### 5.3 运行主程序（芬兰工作流，`main.py` 统一入口）
+
+各步骤幂等（已生成自动跳过），可单独执行或一键全流程：
 
 ```bash
-python main.py
+python main.py all                  # 全流程：prepare → extract → subsample → train
+python main.py prepare              # 研究区数据准备（S2/标签/DEM 对齐，EPSG:3067 10m）
+python main.py extract              # 特征提取（30m 窗口 → samples.csv）
+python main.py subsample 50000      # 空间均匀抽样（每区 5 万 → samples_sampled.csv）
+python main.py train                # 模型训练（三模型矩阵 + 空间分块 CV）
+python main.py train --smoke        # 冒烟测试（小样本 + 少量树，验证流程）
+```
+
+也可直接运行模块：`python -m preprocess.finland_study`、`python -m feature.extract`、`python -m feature.subsample [N]`、`python -m model.rf`
 ```
 
 ---
@@ -184,28 +197,28 @@ python main.py
 
 本项目包含四类核心文档：
 
-### 根目录 README.md（当前文件）
+### 1.根目录 README.md（当前文件）
 
-### 项目开发文档.docx
+### 2.项目开发文档.docx.md
 
-- 项目的详细信息、正确引导、开发/维护规则位于[项目开发文档.docx](./项目开发文档.docx)
+- 项目的详细信息、正确引导、开发/维护规则位于[项目开发文档.docx.md](./项目开发文档.docx.md)
 
-### 模块目录和data子目录 README.md
+### 3.模块目录和data子目录 README.md
 
 - 介绍数据信息、模块信息
 
-### DEVELOP_LOG.md（开发日志）
+### 4.DEVELOP_LOG.md（开发日志）
 
 - 开发过程与修改记录
 - 当前实现状态
 - 下一步开发计划
 - 开发日志
 
-### 使用建议与要求（针对 AI ）
+## 8.使用建议与要求（针对 AI ）
 
 当接手本项目时：
 
-1. 如果ai是首次接手该项目，应先读取**项目开发推进文档.docx**，了解本项目开发和维护规则
+1. 如果ai是首次接手该项目，应先读取**项目开发文档.docx.md**，了解本项目开发和维护规则
 2. 不应在未先尝试使用系统已有的conda环境下，直接创建新临时conda环境，系统conda环境命名为**GradProj**
 
 ---

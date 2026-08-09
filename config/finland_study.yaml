@@ -1,0 +1,32 @@
+# =========================================================
+# 芬兰研究区配置（纯林 / 混交）
+# =========================================================
+# 统一输出坐标系与分辨率
+output_crs: EPSG:3067
+target_resolution: 10
+
+# 两个典型研究区（基于 MS-NFI 树种分析识别）
+regions:
+  - id: pure_pine_lapland
+    name: "纯林区（拉普兰纯松林）"
+    center: { lon: 27.20, lat: 68.76 }
+    half_size_m: 10000        # 20km x 20km
+    label: pure
+  - id: mixed_central
+    name: "混交区"
+    center: { lon: 24.97, lat: 66.06 }
+    half_size_m: 10000        # 20km x 20km
+    label: mixed
+
+# 样本构建参数
+sampling:
+  window_m: 30                # 采样窗口边长（30m x 30m）
+  step_m: 30                  # 网格步长（不重叠）
+
+# 数据路径（相对项目根）
+paths:
+  safe_root: data/Sentinel2/SAFE/Finland_PureMixed
+  roi_root: data/Sentinel2/roi/Finland_PureMixed
+  study_root: data/feature/finland_study
+  msnfi_total: data/inventory/Finland_NFI_2023_GSV/paituli_71662873/luke/vmi/2023/tilavuus_vmi1x_1923.tif
+  dem_root: data/DEM/raw/Finland_DEM_10m_2019/mml/dem10m/2019

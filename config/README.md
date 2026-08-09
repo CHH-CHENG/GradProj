@@ -7,6 +7,7 @@
 |------|------|
 | `copernicus.yaml` | Copernicus Data Space（CDSE）账号配置，用于 Sentinel-2 数据下载 |
 | `preprocess.yaml` | 预处理配置：波段读取 / 重采样 / ROI 裁剪 参数 |
+| `finland_study.yaml` | **芬兰研究区配置**：两个研究区（纯林/混交）中心与范围、采样参数、数据路径 |
 
 ## 数据类型
 - YAML 配置文件

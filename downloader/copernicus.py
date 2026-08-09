@@ -169,3 +169,113 @@ def download_product(product_id, get_token_func, out_dir="data/Sentinel2/zip"):
 def download_batch(product_ids):
     for pid in product_ids:
         download_product(pid, get_token)
+
+
+# =========================
+# 从产品 Attributes 中鲁棒提取云量
+# =========================
+def _extract_cloud(item):
+    """兼容 Copernicus OData 扁平结构（{"Name","Value","ValueType"}）与旧嵌套结构"""
+    for att in item.get("Attributes") or []:
+        if att.get("Name") == "cloudCover":
+            if "Value" in att:                  # 扁平结构
+                return att.get("Value")
+            vals = att.get("value")             # 兼容嵌套结构
+            if isinstance(vals, dict):
+                return vals.get("Value")
+            for v in vals or []:
+                if isinstance(v, dict) and "Value" in v:
+                    return v["Value"]
+    return None
+
+
+# =========================
+# 提取 tile（优先用 Attributes.tileId，回退文件名解析）
+# =========================
+def _extract_tile(item):
+    for att in item.get("Attributes") or []:
+        if att.get("Name") == "tileId" and att.get("Value"):
+            return str(att.get("Value"))
+    name = item.get("Name", "")
+    return next((p for p in name.split("_") if p.startswith("T") and len(p) == 6), "")
+
+
+# =========================
+# 按矩形范围查询（返回完整产品信息，用于按 tile 去重）
+# =========================
+def search_products_bbox(lon_min, lat_min, lon_max, lat_max, start_date, end_date, cloud=20, max_items=300, product_type="L2A"):
+    """按 WGS84 矩形范围查询 Sentinel-2 产品，返回产品信息字典列表。
+
+    每个产品信息：{id, name, tile, date, cloud, online}
+    - tile 优先取自 Attributes.tileId，回退从产品名解析
+    - 默认仅返回 L2A（product_type="L2A"），可传 "L1C" 或 "ALL"
+    """
+    type_token = {"L1C": "MSIL1C", "L2A": "MSIL2A"}.get(product_type, product_type)
+    wkt = (f"POLYGON(({lon_min} {lat_min},{lon_max} {lat_min},"
+           f"{lon_max} {lat_max},{lon_min} {lat_max},{lon_min} {lat_min}))")
+    query = (
+        f"$filter=Collection/Name eq 'SENTINEL-2' "
+        f"and OData.CSC.Intersects(area=geography'SRID=4326;{wkt}') "
+        f"and ContentDate/Start ge {start_date}T00:00:00.000Z "
+        f"and ContentDate/Start le {end_date}T23:59:59.999Z "
+        f"and Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'cloudCover' "
+        f"and att/OData.CSC.DoubleAttribute/Value lt {cloud})"
+        f"&$orderby=ContentDate/Start desc"
+        f"&$top={max_items}&$expand=Attributes"
+    )
+    url = f"{CATALOG_URL}?{query}"
+    r = requests.get(url)
+    r.raise_for_status()
+
+    products = []
+    for item in r.json().get("value", []):
+        name = item.get("Name", "")
+        if product_type != "ALL" and type_token not in name:   # Python 端按产品类型过滤
+            continue
+        date = (item.get("ContentDate") or {}).get("Start", "")[:10]
+        products.append({
+            "id": item["Id"],
+            "name": name,
+            "tile": _extract_tile(item),
+            "date": date,
+            "cloud": _extract_cloud(item),
+            "online": item.get("Online", False),
+        })
+    print(f"[{start_date}~{end_date}] 范围 [{lon_min},{lat_min}]-[{lon_max},{lat_max}] "
+          f"查询到 {len(products)} 个 {product_type} 产品（云量<{cloud}）")
+    return products
+
+
+# =========================
+# 按 tile 去重：每个 tile 只保留云量最少的一期（避免重复时相）
+# =========================
+def dedup_by_tile(products, keep="min_cloud"):
+    best = {}
+    for p in products:
+        if not p.get("online"):
+            print(f"  跳过离线: {p['name']}")
+            continue
+        key = p["tile"] or p["id"]
+        cur = best.get(key)
+        cur_cloud = cur.get("cloud") if cur else None
+        p_cloud = p.get("cloud")
+        if cur is None or (p_cloud is not None and (cur_cloud is None or p_cloud < cur_cloud)):
+            best[key] = p
+    return list(best.values())
+
+
+# =========================
+# 区域一站式：查询 -> 去重 -> 下载（每 tile 一期）
+# =========================
+def search_and_download_region(lon_min, lat_min, lon_max, lat_max, start_date, end_date, cloud=20):
+    products = search_products_bbox(lon_min, lat_min, lon_max, lat_max, start_date, end_date, cloud)
+    selected = dedup_by_tile(products)
+    print(f"按 tile 去重后选择 {len(selected)} 个产品：")
+    for p in sorted(selected, key=lambda x: x["tile"]):
+        print(f"  {p['date']} | {p['tile']} | 云量 {p['cloud']} | {p['name']}")
+    if not selected:
+        print("  无可用产品，跳过下载")
+        return []
+    ids = [p["id"] for p in selected]
+    download_batch(ids)
+    return selected

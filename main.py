@@ -1,3 +1,19 @@
+"""项目主流程控制入口（芬兰研究：纯林/混交林对比）
+
+步骤（各步幂等，已生成自动跳过）：
+  prepare   研究区数据准备（Sentinel-2 拼接 / MS-NFI 标签 / DEM，统一 EPSG:3067 10m）
+  extract   特征提取（30m 窗口 → data/feature/samples.csv）
+  subsample 空间均匀抽样（默认每区 50000 → samples_sampled.csv）
+  train     模型训练（三模型矩阵 + 空间分块 CV；--smoke 冒烟测试）
+  all       依次执行 prepare → extract → subsample → train
+
+用法：
+  python main.py all
+  python main.py prepare
+  python main.py subsample 30000
+  python main.py train
+  python main.py train --smoke
+"""
 import os
 import sys
 from pathlib import Path
@@ -33,23 +49,61 @@ def _ensure_gdal_env():
 
 _ensure_gdal_env()
 
-from downloader.copernicus import search_products, download_batch
-from preprocess.unzip import unzip_all
-from preprocess.crop_roi import process_sentinel2
 
-def download_and_unzip():
-    lon, lat = 107.0, 34.3
-    start_date = "2023-06-01"
-    end_date = "2023-08-01"
-    product_ids = search_products(lon, lat, start_date, end_date)
-    download_batch(product_ids)
-    unzip_all()  # 批量解压
+def run_prepare():
+    """研究区数据准备：S2 拼接 + MS-NFI 标签 + DEM（preprocess/finland_study.py）"""
+    from preprocess.finland_study import prepare_all
+    prepare_all()
 
 
-def run_preprocess():
-    """波段读取 + 重采样 + ROI 裁剪（研究区整幅 + 按样地预留）"""
-    process_sentinel2()
+def run_extract():
+    """特征提取：30m 窗口 → samples.csv（feature/extract.py）"""
+    from feature.extract import build_all
+    build_all()
+
+
+def run_subsample(n=None):
+    """空间均匀抽样（feature/subsample.py）"""
+    from feature.subsample import main as subsample_main
+    subsample_main(n)
+
+
+def run_train(smoke=False):
+    """模型训练：三模型矩阵 + 空间分块 CV（model/rf.py）"""
+    if smoke:
+        os.environ["RF_SMOKE"] = "1"
+        print(">>> 冒烟测试模式（小样本 + 少量树），仅验证流程")
+    from model.rf import main as rf_main
+    rf_main()
+
+
+def main():
+    argv = sys.argv[1:]
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        return
+
+    if argv[0] == "all":
+        run_prepare()
+        run_extract()
+        run_subsample(None)
+        run_train(False)
+        return
+
+    step = argv[0]
+    if step == "prepare":
+        run_prepare()
+    elif step == "extract":
+        run_extract()
+    elif step == "subsample":
+        n = int(argv[1]) if len(argv) > 1 and argv[1].isdigit() else None
+        run_subsample(n)
+    elif step == "train":
+        run_train("--smoke" in argv)
+    else:
+        print(f"未知步骤: {step}\n")
+        print(__doc__)
 
 
 if __name__ == "__main__":
-    run_preprocess()
+    main()
