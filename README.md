@@ -183,9 +183,9 @@ python main.py subsample 50000      # 空间均匀抽样（每区 5 万 → samp
 python main.py train                # 模型训练（三模型矩阵 + 空间分块 CV）
 python main.py train --smoke        # 冒烟测试（小样本 + 少量树，验证流程）
 ```
-```
+
 也可直接运行模块：`python -m preprocess.finland_study`、`python -m feature.extract`、`python -m feature.subsample [N]`、`python -m model.rf`
-```
+
 
 ---
 
