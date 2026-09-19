@@ -1,22 +1,36 @@
-"""项目主流程控制入口（芬兰研究：纯林/混交林对比）
+"""项目主流程控制入口（西班牙 IFN4 研究：省份间森林蓄积量估测）
 
-步骤（各步幂等，已生成自动跳过）：
-  prepare   研究区数据准备（Sentinel-2 拼接 / MS-NFI 标签 / DEM，统一 EPSG:3067 10m）
-  extract   特征提取（30m 窗口 → data/feature/samples.csv）
-  subsample 空间均匀抽样（默认每区 50000 → samples_sampled.csv）
-  train     模型训练（三模型矩阵 + 空间分块 CV；--smoke 冒烟测试）
-  all       依次执行 prepare → extract → subsample → train
+步骤（各步尽量幂等，已生成的数据自动跳过）：
+  download  Sentinel-2 下载（downloader/spain.py；省份 leon/burgos/lugo 或 all）
+  unzip     解压 SAFE 产品（preprocess/unzip.py）
+  roi       研究区裁剪（preprocess/crop_roi.py，依赖 config/preprocess.yaml）
+  extract   特征提取 → data/feature/samples.csv（feature/extract.py，⏳ 待实现）
+  subsample 空间均匀抽样（feature/subsample.py）
+  train     随机森林建模 + 空间分块 CV（model/rf.py；--smoke 冒烟测试）
+  all       依次执行 download → unzip → roi → extract → subsample → train
 
 用法：
-  python main.py all
-  python main.py prepare
-  python main.py subsample 30000
-  python main.py train
+  python main.py download all                    # 下载三省 S2（约 21.3 GB，已完成）
+  python main.py download leon --dry-run         # 仅查询预览
+  python main.py unzip
+  python main.py roi
+  python main.py subsample 50000
   python main.py train --smoke
 """
 import os
 import sys
 from pathlib import Path
+
+# Windows 控制台编码兼容：无法编码的符号（如 ⏳）替换为 ?，避免 UnicodeEncodeError
+try:
+    sys.stdout.reconfigure(errors="replace")
+except Exception:
+    pass
+
+# 西班牙研究数据根目录（SAFE / roi 均在 Spain_IFN4 子目录下）
+S2_ZIP = "data/Sentinel2/zip/Spain_IFN4"
+S2_SAFE = "data/Sentinel2/SAFE/Spain_IFN4"
+S2_ROI = "data/Sentinel2/roi/Spain_IFN4"
 
 
 def _ensure_gdal_env():
@@ -50,14 +64,35 @@ def _ensure_gdal_env():
 _ensure_gdal_env()
 
 
-def run_prepare():
-    """研究区数据准备：S2 拼接 + MS-NFI 标签 + DEM（preprocess/finland_study.py）"""
-    from preprocess.finland_study import prepare_all
-    prepare_all()
+def run_download(targets, dry_run=False):
+    """Sentinel-2 下载（downloader/spain.py）：targets 为省份名列表或 ['all']"""
+    from downloader import spain
+
+    if not targets or targets[0] == "all":
+        keys = list(spain.REGIONS)
+    else:
+        keys = [t for t in targets if t in spain.REGIONS]
+        unknown = [t for t in targets if t not in spain.REGIONS]
+        if unknown:
+            print(f"未知区域: {unknown}  可选: {list(spain.REGIONS)} 或 all")
+    for k in keys:
+        spain.run_region(k, dry_run)
+
+
+def run_unzip():
+    """解压 SAFE 产品（preprocess/unzip.py）"""
+    from preprocess.unzip import unzip_all
+    unzip_all(zip_dir=S2_ZIP, out_dir=S2_SAFE)
+
+
+def run_roi():
+    """研究区裁剪（preprocess/crop_roi.py；研究区范围由 config/preprocess.yaml 控制）"""
+    from preprocess.crop_roi import process_sentinel2
+    process_sentinel2(safe_root=S2_SAFE, out_root=S2_ROI)
 
 
 def run_extract():
-    """特征提取：30m 窗口 → samples.csv（feature/extract.py）"""
+    """特征提取：窗口聚合 → samples.csv（feature/extract.py，⏳ 待实现）"""
     from feature.extract import build_all
     build_all()
 
@@ -69,7 +104,7 @@ def run_subsample(n=None):
 
 
 def run_train(smoke=False):
-    """模型训练：三模型矩阵 + 空间分块 CV（model/rf.py）"""
+    """随机森林建模 + 空间分块 CV（model/rf.py）"""
     if smoke:
         os.environ["RF_SMOKE"] = "1"
         print(">>> 冒烟测试模式（小样本 + 少量树），仅验证流程")
@@ -84,15 +119,22 @@ def main():
         return
 
     if argv[0] == "all":
-        run_prepare()
+        run_download(["all"])
+        run_unzip()
+        run_roi()
         run_extract()
         run_subsample(None)
         run_train(False)
         return
 
     step = argv[0]
-    if step == "prepare":
-        run_prepare()
+    if step == "download":
+        targets = [a for a in argv[1:] if not a.startswith("-")]
+        run_download(targets or ["all"], "--dry-run" in argv)
+    elif step == "unzip":
+        run_unzip()
+    elif step == "roi":
+        run_roi()
     elif step == "extract":
         run_extract()
     elif step == "subsample":

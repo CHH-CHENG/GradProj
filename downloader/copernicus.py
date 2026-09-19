@@ -133,6 +133,13 @@ def download_product(product_id, get_token_func, out_dir="data/Sentinel2/zip"):
                     token = get_token_func()
                     continue
 
+                if r.status_code == 501:
+                    # CDSE 部分端点不支持 Range 续传 → 删除断点，下次循环完整重下
+                    print(f"[{product_id}] 服务器不支持续传(501)，删除断点后完整重下")
+                    if os.path.exists(part_path):
+                        os.remove(part_path)
+                    continue
+
                 if r.status_code not in [200, 206]:
                     raise Exception(f"HTTP {r.status_code}")
 

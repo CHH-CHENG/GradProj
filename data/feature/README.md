@@ -2,39 +2,36 @@
 
 放置特征工程产物（模型训练样本）及研究区中间数据。
 
+> ⏳ **当前为空**：早期芬兰特征数据（samples.csv 等）已随研究区域更换移除，待西班牙流程重建。
+
 ## 子目录结构
 
 ```text
 feature/
 ├── README.md
-├── samples.csv               # 训练样本表（✅ 76.3 万样本）
-├── samples_sampled.csv       # 抽样后训练集（✅ 约 9.2 万样本，空间均匀抽样）
-├── finland_study/            # 研究区对齐栅格（MS-NFI 标签 / DEM）
-│   ├── pure_pine_lapland_GSV_10m_3067.tif   # 纯林区蓄积量标签（m³/ha）
-│   ├── pure_pine_lapland_DEM_10m_3067.tif   # 纯林区高程（m，N2000）
-│   ├── mixed_central_GSV_10m_3067.tif       # 混交区蓄积量标签
-│   └── mixed_central_DEM_10m_3067.tif       # 混交区高程
-└── _cls1km.npy / _t1km.npy    # 典型区识别分析临时中间结果（可复现）
+└── （⏳ 待生成）
 ```
 
-## 放置的数据
+## 规划数据
 
-- `samples.csv`：**训练样本表**（✅ 已生成，76.3 万样本，0 NaN），每行一个 30m×30m 窗口样本
-- `samples_sampled.csv`：**抽样后训练集**（✅ 空间均匀抽样，默认每区 5 万、共约 9.2 万），用于建模控制规模
-- `finland_study/`：研究区对齐栅格（MS-NFI 蓄积量标签 16m→10m、DEM 高程，均 EPSG:3067、10m、2000×2000）
-- `_cls1km.npy` / `_t1km.npy`：MS-NFI 典型区识别分析临时中间结果（1km 网格分类 + 仿射变换）
+| 数据 | 说明 | 状态 |
+|------|------|------|
+| 样地蓄积量（IFN4） | 从 `PCMayores` 树木数据计算的样地级蓄积量（m³/ha） | ⏳ 待生成 |
+| `samples.csv` | 训练样本表（每行一个样地/窗口：S2 光谱+植被指数+地形特征 + GSV 标签） | ⏳ 待生成 |
+| `samples_sampled.csv` | 抽样后训练集（空间均匀抽样降自相关） | ⏳ 待生成 |
 
 ## 数据类型
 
-- 表格数据（CSV）/ numpy 数组（NPY）/ GeoTIFF
+- 表格数据（CSV）/ GeoTIFF（研究区对齐栅格）
 
-## samples.csv 内部格式
+## 数据内部格式（待补充）
 
-| 列 | 说明 |
-|----|------|
-| `sample_id` / `region_id` / `label` | 样本 ID / 研究区 / 分组（pure 纯林 / mixed 混交） |
-| `x_3067` / `y_3067` | 窗口中心坐标（EPSG:3067） |
-| `B02`~`B12`（10 列） | S2 光谱窗口均值（0~1 反射率） |
-| `NDVI` / `EVI` / `NDWI` / `NDRE` | 植被指数（窗口均值） |
-| `DEM_elev` / `DEM_slope` / `DEM_aspect` | 地形特征：高程（m）/ 坡度（°）/ 坡向（°） |
-| `GSV` | 蓄积量标签（m³/ha，窗口中心 MS-NFI 值） |
+- `samples.csv` 列规划（**23 特征** + 标识/标签，详见 `项目开发文档.md` 8.11）：
+  - 标识：`sample_id` / `province` / `plot_id` / `x` / `y`
+  - 基础光谱（10）：`B02` `B03` `B04` `B05` `B06` `B07` `B08` `B8A` `B11` `B12`
+  - 植被指数（3）：`NDVI` `NDWI` `NDRE`
+  - 多尺度（3）：`NDVI_std50` `NDRE_std50` `B8_std50`
+  - 结构-纹理（2）：`GLCM_contrast` `GLCM_entropy`
+  - 结构-邻域（2）：`NDVI_mean100` `NDVI_std100`
+  - 地形（3）：`DEM_elev` `DEM_slope` `DEM_aspect`
+  - 标签：`GSV`（m³/ha，IFN4 样地蓄积量）

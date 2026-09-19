@@ -10,7 +10,7 @@
 | 函数 | 作用 |
 |------|------|
 | `get_safe_name(zip_path)` | 从 zip 内部读取真实 SAFE 产品名（顶层目录），避免 UUID 命名陷阱 |
-| `unzip_all()` | 批量解压 `data/Sentinel2/zip/` → `data/Sentinel2/SAFE/`，已解压自动跳过 |
+| `unzip_all(zip_dir, out_dir, delete_zip)` | 批量解压（默认 `zip/` → `SAFE/`）；**递归扫描子目录**（支持 `zip/Spain_IFN4/<省>/` 组织），已解压自动跳过 |
 
 ### read_bands.py（波段读取 + 重采样）
 | 函数 | 作用 |
@@ -26,16 +26,12 @@
 | `process_plots(safe_dir, plots_path, out_dir, cfg)` | 按样地矢量裁剪（点自动按 `plot_buffer_m` 缓冲；样地数据未就位时跳过） |
 | `process_sentinel2()` | 主流程：遍历 SAFE 下所有 L2A 产品，已处理自动跳过 |
 
-- **输入**：`data/Sentinel2/SAFE/*.SAFE/`、`config/preprocess.yaml`
-- **输出**：`data/Sentinel2/roi/*_roi.tif`（10 波段 B02~B12，10m，EPSG:32648，0~1 反射率）
+- **输入**：`data/Sentinel2/SAFE/`、`config/preprocess.yaml`
+- **输出**：`data/Sentinel2/roi/*_roi.tif`（10 波段 B02~B12，10m，影像自带 CRS（西班牙为 ETRS89/UTM），0~1 反射率）
 
-### finland_study.py（芬兰研究区数据准备）
-| 函数 | 作用 |
-|------|------|
-| `prepare_region_s2(region, cfg, safe_dirs)` | 从覆盖研究区的 SAFE 读取波段，逐块重投影到统一 EPSG:3067 网格（10m），重叠区均值融合 |
-| `prepare_region_label(region, cfg)` | 从 MS-NFI 全国蓄积量栅格裁剪标签（16m→10m 最近邻） |
-| `prepare_region_dem(region, cfg)` | 从 MML 10m DEM 分块裁剪拼接（EPSG:3067） |
-| `prepare_all()` | 主流程：遍历两个研究区（纯林/混交）生成对齐栅格 |
+### 研究区整幅数据准备（西班牙 IFN4，⏳ 待实现）
 
-- **配置**：`config/finland_study.yaml`（两个研究区中心/范围、采样参数、数据路径）
-- **输出**：`data/Sentinel2/roi/Finland_PureMixed/<id>_S2_10m_3067.tif`、`data/feature/finland_study/<id>_GSV_10m_3067.tif`、`..._DEM_10m_3067.tif`（均 2000×2000、10m、EPSG:3067）
+原芬兰阶段的 `finland_study.py`（研究区重投影对齐 + 标签/DEM 裁剪）已随研究区更换移除。
+西班牙版本需在数据就绪后实现，职责：
+- 跨 tile / 跨 UTM 带重投影到统一网格（逐块重投影 + 均值融合）
+- 裁剪 IFN4 样地蓄积量标签（由 `PCMayores` 计算）与 DEM，与 S2 特征像元对齐

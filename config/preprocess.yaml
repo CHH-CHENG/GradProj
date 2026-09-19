@@ -25,20 +25,23 @@ bands:
 scale_reflectance: true
 
 # =========================================================
-# 研究区（样地数据未就位前，先用默认研究区跑通全流程）
+# 研究区（西班牙 IFN4 · León 优先）
+# ⚠️ 中心点为初步占位（León 省北部 Cordillera Cantábrica 林区），
+#    最终范围待样地分布统计后确定并调整；详见 config/spain_study.yaml
 # =========================================================
 research_center:
-  lon: 107.0
-  lat: 34.3
+  lon: -6.17
+  lat: 42.87
 
 # 研究区半宽（米）→ 最终范围为 2*half_size x 2*half_size
-research_half_size_m: 5000
+research_half_size_m: 10000
 
 # =========================================================
 # 按样地裁剪（预留接口，plots 文件就位后自动启用）
 # =========================================================
 # 样地矢量文件：点（自动按 plot_buffer_m 缓冲）或面
-plots: data/inventory/plots.geojson
+# ⏳ 西班牙样地需由 IFN4 accdb（PCParcelas + PCDatosMap）导出为 GeoJSON
+plots: data/inventory/IFN4/plots_spain.geojson
 
 # 样地点缓冲半径（米）
 plot_buffer_m: 20

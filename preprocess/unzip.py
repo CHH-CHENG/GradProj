@@ -41,7 +41,8 @@ def unzip_all(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    zip_files = list(zip_dir.glob("*.zip"))
+    # 递归扫描（支持按区域/省份组织的子目录，如 zip/Spain_IFN4/leon/）
+    zip_files = sorted(zip_dir.rglob("*.zip"))
 
     print(f"发现 {len(zip_files)} 个zip文件")
 

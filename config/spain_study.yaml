@@ -1,0 +1,50 @@
+# =========================================================
+# 西班牙 IFN4 研究区配置（León / Burgos / Lugo 三省）
+# =========================================================
+# 统一输出坐标系与分辨率
+output_crs: EPSG:25830        # ETRS89 / UTM 30N（León、Burgos 所在带；Lugo 原属 25829）
+target_resolution: 10         # 与 Sentinel-2 10m 波段一致
+
+# 省份信息（IFN4 野外调查年；S2 时相与之匹配或取最近可用年份）
+provinces:
+  leon:                       # ★ 第一步重点省份
+    name: "León"
+    ifn4_year: 2019
+    s2_year: 2019
+    epsg: 25830
+    epsg_note: "样地 Huso 字段存在误标（661 条标 29），实测坐标全部为 EPSG:25830"
+    n_plots: 1401
+    bbox: { lon_min: -7.10, lat_min: 42.05, lon_max: -4.72, lat_max: 43.26 }
+  burgos:
+    name: "Burgos"
+    ifn4_year: 2018
+    s2_year: 2018
+    epsg: 25830
+    n_plots: 2076
+    bbox: { lon_min: -4.40, lat_min: 41.40, lon_max: -2.47, lat_max: 43.24 }
+  lugo:
+    name: "Lugo"
+    ifn4_year: 2009
+    s2_year: 2016             # 2009 年无同期 S2（S2 自 2015 起），取最早可用年份
+    epsg: 25829
+    n_plots: 2452
+    bbox: { lon_min: -8.03, lat_min: 42.28, lon_max: -6.75, lat_max: 43.79 }
+
+# 样本构建参数
+sampling:
+  window_m: 30                # 采样窗口边长（30m x 30m）
+  step_m: 30                  # 网格步长（不重叠）
+
+# 数据路径（相对项目根）
+paths:
+  zip_root: data/Sentinel2/zip/Spain_IFN4
+  safe_root: data/Sentinel2/SAFE/Spain_IFN4
+  roi_root: data/Sentinel2/roi/Spain_IFN4
+  study_root: data/feature/spain_study
+  inventory_root: "data/inventory/IFN4（Cuarto Inventario Forestal Nacional de España）"
+  dem_root: data/DEM/raw/Spain_DEM
+
+# 备注：
+# - 三省影像建议分别建模（跨省合并需注意 UTM 带与物候差异）；
+# - Lugo（IFN4 2009 / S2 2016）时相缺口较大，作为补充/对比省份；
+# - 蓄积量标签需由 PCMayores 树木表（Especie/Dn1/Ht）按 IFN4 官方材积公式计算。

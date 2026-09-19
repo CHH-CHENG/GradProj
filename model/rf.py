@@ -1,13 +1,14 @@
-"""随机森林建模：纯林 vs 混交林精度对比 + 空间分块交叉验证
+"""随机森林建模：省份间精度对比 + 空间分块交叉验证（西班牙 IFN4）
 
-数据：data/feature/samples_sampled.csv（抽样后训练集，默认 9.2 万样本）
-特征：10 光谱波段 + NDVI/EVI/NDWI/NDRE + DEM 高程/坡度/坡向（17 个）
-标签：GSV（m³/ha，窗口中心 MS-NFI 蓄积量）
+数据：data/feature/samples_sampled.csv（抽样后训练集；西班牙三省样本）
+特征：研究方案 v1 的 **23 个特征**（定义见 `feature/extract.py` 的 `FEATURES`；
+      详见 `项目开发文档.md` 8.11）—— 10 光谱波段 + NDVI/NDWI/NDRE
+      + 3 个 50m std + 2 个 GLCM 纹理 + 2 个 100m 邻域 + 3 个地形
+标签：GSV（m³/ha，IFN4 样地蓄积量）
 
-模型矩阵（回答"纯林 vs 混交林"研究问题）：
-  ① mixed_model   : 混交样本训练 → 混交空间分块 CV 评估
-  ② pure_model    : 纯林样本训练 → 纯林空间分块 CV 评估
-  ③ global_model  : 全样本训练 → 空间分块 CV，按 label 分别评估（对比分开/合并建模）
+模型矩阵（回答“省份间差异 + 分省/合并建模”研究问题）：
+  ① {prov}_model : 单省样本训练 → 该省空间分块 CV 评估（leon / burgos / lugo）
+  ② global_model : 全样本训练 → 空间分块 CV，按省份分别评估（对比分省/合并建模）
 
 CV 方法：空间分块（KMeans 按坐标聚类成 5 个空间块 + GroupKFold 5 折），
   保证同一空间块的样本不跨训练/测试，避免空间自相关导致精度虚高。
@@ -15,13 +16,14 @@ CV 方法：空间分块（KMeans 按坐标聚类成 5 个空间块 + GroupKFold
 指标：R² / RMSE / RMSE%（=RMSE/均值） / MAE，固定随机种子
 输出：data/result/（指标汇总、特征重要性、模型文件）
 
-用法：python -m model.rf
+用法：python -m model.rf [--smoke]
 """
 import os
 import sys
 from pathlib import Path
 
-sys.stdout.reconfigure(line_buffering=True)   # 实时输出训练进度
+sys.stdout.reconfigure(line_buffering=True,     # 实时输出训练进度
+                       errors="replace")        # 无法编码的符号替换，避免崩溃
 
 import joblib
 import numpy as np
@@ -33,8 +35,8 @@ from sklearn.model_selection import GroupKFold
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-FEATURES = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12",
-            "NDVI", "EVI", "NDWI", "NDRE", "DEM_elev", "DEM_slope", "DEM_aspect"]
+from feature.extract import FEATURES   # 特征定义单一来源（研究方案 v1，21 个；详见 项目开发文档.md 8.11）
+
 SEED = 42
 N_SPLITS = 5
 SMOKE = os.environ.get("RF_SMOKE") == "1"
@@ -60,7 +62,7 @@ def spatial_block_cv(df, n_estimators=N_ESTIMATORS, n_splits=N_SPLITS, seed=SEED
     """
     X = df[FEATURES].to_numpy()
     y = df["GSV"].to_numpy()
-    coords = df[["x_3067", "y_3067"]].to_numpy()
+    coords = df[["x", "y"]].to_numpy()
 
     km = KMeans(n_clusters=n_splits, random_state=seed, n_init=10).fit(coords)
     blocks = km.labels_
@@ -84,49 +86,45 @@ def spatial_block_cv(df, n_estimators=N_ESTIMATORS, n_splits=N_SPLITS, seed=SEED
     return oof, metrics(y, oof), fold_metrics, importance, models
 
 
+PROVINCES = ["leon", "burgos", "lugo"]
+
+
 def main():
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(r"data/feature/samples_sampled.csv")
     if SMOKE:
-        df = (df.groupby("label", group_keys=False)
+        df = (df.groupby("province", group_keys=False)
                 .apply(lambda g: g.sample(3000, random_state=SEED)))
         print(f"[SMOKE] 样本抽样至 {len(df)}")
     print(f"样本总数: {len(df)}  特征数: {len(FEATURES)}")
 
     summary = {}
-    oof_store = {}
 
-    # ① 混交模型
-    print("\n=== 模型① mixed_model（混交样本）===")
-    sub = df[df["label"] == "mixed"].reset_index(drop=True)
-    oof, overall, _, imp, models = spatial_block_cv(sub)
-    summary["mixed_model"] = overall
-    oof_store["mixed_model"] = (sub, oof)
-    pd.DataFrame({"feature": FEATURES, "importance": imp}).to_csv(
-        RESULT_DIR / "importance_mixed.csv", index=False, float_format="%.5f")
-    joblib.dump(models[-1], RESULT_DIR / "rf_mixed.joblib")
+    # ① 分省模型（每省独立建模/评估）
+    for prov in PROVINCES:
+        sub = df[df["province"] == prov].reset_index(drop=True)
+        if len(sub) == 0:
+            print(f"\n（跳过 {prov}：无样本）")
+            continue
+        print(f"\n=== 模型: {prov}_model ===")
+        oof, overall, _, imp, models = spatial_block_cv(sub)
+        summary[f"{prov}_model"] = overall
+        pd.DataFrame({"feature": FEATURES, "importance": imp}).to_csv(
+            RESULT_DIR / f"importance_{prov}.csv", index=False, float_format="%.5f")
+        joblib.dump(models[-1], RESULT_DIR / f"rf_{prov}.joblib")
 
-    # ② 纯林模型
-    print("\n=== 模型② pure_model（纯林样本）===")
-    sub = df[df["label"] == "pure"].reset_index(drop=True)
-    oof, overall, _, imp, models = spatial_block_cv(sub)
-    summary["pure_model"] = overall
-    oof_store["pure_model"] = (sub, oof)
-    pd.DataFrame({"feature": FEATURES, "importance": imp}).to_csv(
-        RESULT_DIR / "importance_pure.csv", index=False, float_format="%.5f")
-    joblib.dump(models[-1], RESULT_DIR / "rf_pure.joblib")
-
-    # ③ 全局模型（按 label 分别评估）
-    print("\n=== 模型③ global_model（全样本）===")
+    # ② 全局模型（按省份分别评估，对比分省/合并建模）
+    print("\n=== 模型: global_model（全样本）===")
     oof_all, overall_all, _, imp_all, models = spatial_block_cv(df)
     summary["global_model_all"] = overall_all
     pd.DataFrame({"feature": FEATURES, "importance": imp_all}).to_csv(
         RESULT_DIR / "importance_global.csv", index=False, float_format="%.5f")
     joblib.dump(models[-1], RESULT_DIR / "rf_global.joblib")
-    for label in ["pure", "mixed"]:
-        mask = (df["label"] == label).to_numpy()
-        summary[f"global_model_on_{label}"] = metrics(
-            df.loc[mask, "GSV"].to_numpy(), oof_all[mask])
+    for prov in PROVINCES:
+        mask = (df["province"] == prov).to_numpy()
+        if mask.sum():
+            summary[f"global_on_{prov}"] = metrics(
+                df.loc[mask, "GSV"].to_numpy(), oof_all[mask])
 
     # 汇总
     print("\n================ 结果汇总 ================")

@@ -1,0 +1,13 @@
+# =========================================================
+# Copernicus Data Space（CDSE）账号配置模板
+# =========================================================
+# 使用方法：复制本文件为 copernicus.yaml，填入自己的账号密码。
+#   Copy-Item config\copernicus.example.yaml config\copernicus.yaml
+#
+# 也可改用环境变量（优先级更高）：CDSE_USER / CDSE_PASS
+#
+# ⚠️ copernicus.yaml 已被 .gitignore 排除，请勿提交到仓库。
+# =========================================================
+
+username: "your_email@example.com"
+password: "your_password"

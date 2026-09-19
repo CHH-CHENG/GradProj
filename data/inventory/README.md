@@ -2,149 +2,127 @@
 
 放置**蓄积量标签数据**（Ground Truth）。按数据来源分类，每个来源一个独立文件夹。
 
-> 📌 历史说明：早期秦岭混交林（角规调查 xlsx）与西班牙纯林（accdb）样地数据已因不符合研究需求移除，本目录现聚焦芬兰 MS-NFI 2023 蓄积量栅格。
+> 📌 历史说明：早期测试/临时数据（秦岭角规调查、芬兰 MS-NFI 栅格）已因研究方案调整移除；**当前研究全面聚焦西班牙 IFN4**。
 
 ## 子目录结构
 
 ```text
 inventory/
 ├── README.md
-└── Finland_NFI_2023_GSV/   # 芬兰多源国家森林清查（MS-NFI）2023 栅格数据
+└── IFN4（Cuarto Inventario Forestal Nacional de España）/
+    ├── 1~3. *.pdf                              # 官方手册（采集/处理/评估）
+    ├── Bases de datos de campo/                # 野外数据库（Ifn4p*.accdb）
+    ├── Bases de datos Sig/                     # GIS 数据库（Sig_*.accdb）
+    └── Tablas de resultados IFN4/              # 结果统计表（xlsx 集 zip）
 ```
 
 ## 数据总览
 
 | 数据 | 来源 | 类型 | 格式 | 位置 | 状态 |
 |------|------|------|------|------|------|
-| 芬兰 MS-NFI 2023 蓄积量栅格 | Luke（芬兰自然资源研究所） | 森林清查栅格（蓄积量标签） | GeoTIFF | `Finland_NFI_2023_GSV/` | ✅ 已下载 4 个主题 |
+| IFN4 三省野外数据库 | MITECO（西班牙生态转型部） | 样地/树木调查 | ACCDB | `.../Bases de datos de campo/` | ✅ 已就位 |
+| IFN4 三省 GIS 数据库 | MITECO | 样地空间/地块 | ACCDB | `.../Bases de datos Sig/` | ✅ 已就位 |
+| IFN4 三省结果统计表 | MITECO | 统计表 | XLSX/XLS | `.../Tablas de resultados IFN4/` | ✅ 已就位 |
 
 ---
 
-## Finland_NFI_2023_GSV（芬兰多源国家森林清查 2023）
+## IFN4（Cuarto Inventario Forestal Nacional de España）
 
 ### 1. 数据简介
 
-**Multi-source national forest inventory (MS-NFI) raster maps of 2023**
-（芬兰多源国家森林清查 2023 栅格地图），由 **Luke**（Natural Resources Institute Finland / 芬兰自然资源研究所）基于遥感 + 地面样地生产的**森林蓄积量等变量的空间分布栅格**。
+**IFN4（Cuarto Inventario Forestal Nacional de España）**——西班牙第四次国家森林清查，由 **MITECO**（生态转型与人口挑战部）组织实施。本目录包含**三个省份**的野外调查数据库、GIS 数据库与结果统计表：
 
-- 数据集 ID：`682679e9-0e42-4e0e-a9b2-c53fc319623d`
-- 下载平台：Paituli（CSC）/ Etsin Fairdata
-- 许可协议：**CC BY 4.0**（使用需注明 `©Luonnonvarakeskus, 2023` 与数据集名称）
-- 发布/更新时间：2025-08-05
+| 省份 | 代码 | 野外数据库 | GIS 数据库 | IFN4 调查年 | 样地数 |
+|------|------|-----------|-----------|------------|--------|
+| Burgos（布尔戈斯） | 09 | `Ifn4p09-burgos.accdb` | `Sig_Burgos.accdb` | **2018**（+2019 少量） | 2076 |
+| León（莱昂） | 24 | `Ifn4p24-leon.accdb` | `Sig_León.accdb` | **2019**（+2005/2013 少量） | 1401 |
+| Lugo（卢戈） | 27 | `Ifn4p27-lugo.accdb` | `Sig_Lugo.accdb` | **2009**（日期 2009-05~09） | 2452 |
 
-### 2. 生产方法（简述）
+- 下载来源：MITECO 官方公开数据（territorio 服务，`tcm30-*` 编号）
+- 研究优先级：**León 优先**（第一步重点），其余省份可更换或暂缓
 
-- 地面样地：2019–2023 年 **VMI13** 清查，共 **51051 个**样地（森林/低产林地/无立木地）
-- 遥感影像：Sentinel-2 **L2A 地表反射率（SR）** 自动镶嵌影像（2021–2023 生长季），CloudScore+ 去云
-- 方法：**增强 k-NN（ik-NN，5 最近邻）**，特征权重用遗传算法优化
-- 数据时点：野外数据更新至 **2023-07-31**
+### 2. 时间信息（与 Sentinel-2 匹配）
 
-#### 2.1 时间信息
+| 省份 | IFN4 调查年 | 调查日期范围 | 拟用 S2 时间窗 |
+|------|------------|-------------|---------------|
+| León | 2019 | —（待查） | 2019-06-01 ~ 09-15 |
+| Burgos | 2018 | 2018-02 ~ 2019-01 | 2018-06-01 ~ 09-15 |
+| Lugo | 2009 | 2009-05-26 ~ 09-24 | ⚠️ **2009 无 S2**（2015 年起才有）→ 暂定 2016 生长季 |
 
-| 时间要素 | 值 |
-|----------|-----|
-| 清查/数据年份 | **2023**（野外数据更新至 2023-07-31） |
-| 地面样地来源年份 | 2019–2023（VMI13，第 13 次国家森林清查） |
-| 遥感影像时段 | 2021–2023 生长季（北部拉普兰地区 2021–2023） |
-| 数据时间范围（temporal） | 2023-01-01 ~ 2023-12-31 |
-| 发布于 Paituli/Etsin（issued） | **2025-08-05** |
-| 元数据最后修改（modified） | 2026-05-29 |
-| 数据集版本 | v1 |
-| 官方说明文档（LUETAMA-2023.txt）日期 | 2025-03-17 |
+> ⚠️ 时间差异说明：Sentinel-2 自 2015 年 6 月起可用；Lugo 的 IFN4（2009）无同期影像，
+> 经研究确认为可接受（自然生长差异有限），暂用 2016 年生长季影像替代。
 
-### 3. 目录结构与命名规则
+### 3. 目录结构与文件清单
 
 ```text
-Finland_NFI_2023_GSV/
-├── metadata.json               # Etsin Fairdata 数据集元数据（原始导出）
-├── LUETAMA-2023.txt            # 官方产品说明（芬兰语，含方法/精度/主题清单）
-├── 临时叙述.txt                # 下载来源备注
-├── paituli_<批次ID>.zip        # Paituli 分主题下载的压缩包
-└── paituli_<批次ID>/
-    └── luke/
-        ├── luke_ehdot.txt      # 许可与使用条款
-        └── vmi/2023/
-            └── <主题>_vmi1x_1923.tif
+IFN4（Cuarto Inventario Forestal Nacional de España）/
+├── 1.MANUAL_TOMA_DATOS_CAMPO_IFN4.pdf       # 野外数据采集手册
+├── 2.MANUAL_PROCESO_DATOS_IFN4.pdf          # 数据处理手册（含材积公式）
+├── 3.MANUAL_VALORACIÓN_IFN4.pdf             # 木材价值评估手册
+├── Bases de datos de campo/                 # 野外调查数据库（已解压）
+│   ├── Ifn4p09-burgos.accdb (+zip)          # Burgos 2018
+│   ├── Ifn4p24-leon.accdb (+zip)            # León 2019（重点）
+│   └── Ifn4p27-lugo.accdb (+zip)            # Lugo 2009
+├── Bases de datos Sig/                      # GIS 数据库（已解压）
+│   ├── Sig_Burgos.accdb (+zip)
+│   ├── Sig_León.accdb (+zip)
+│   └── Sig_Lugo.accdb (+zip)
+└── Tablas de resultados IFN4/               # 省级统计结果表（zip 未解压）
+    ├── burgos_tcm30-545832.zip（130 项 xlsx）
+    ├── leon_tcm30-545838.zip（127 项）
+    └── lugo_tcm30-545839.zip（104 项 xls）
 ```
 
-**命名规则**：`<主题英文名>_vmi1x_1923.tif`（`vmi1x` 表示 1km 格网分块交货；本批次为全国整幅）。
+### 4. 野外数据库结构（已解析，以 Burgos 为例）
 
-**文件格式说明**
+**表清单（9 张）**：
 
-| 文件 | 格式 | 说明 |
-|------|------|------|
-| `metadata.json` | JSON（UTF-8） | Etsin Fairdata 数据集元数据原始导出（含 ID/许可/空间范围/远程资源等） |
-| `LUETAMA-2023.txt` | 纯文本（UTF-8） | 官方产品说明（芬兰语）：方法、精度误差表、45 主题清单与文件名对照 |
-| `临时叙述.txt` | 纯文本（UTF-8） | 下载来源备注（数据集名称 + Paituli 链接） |
-| `luke_ehdot.txt` | 纯文本（UTF-8） | 许可与使用条款（CC BY 4.0，芬英双语） |
-| `paituli_<批次ID>.zip` | ZIP 压缩包 | 每包含 1 个主题 tif + `luke_ehdot.txt` |
-| `<主题>_vmi1x_1923.tif` | GeoTIFF | 全国整幅蓄积量栅格（详见第 5 节） |
+| 表 | 行数（Burgos） | 内容 |
+|----|--------------|------|
+| **PCParcelas** | 2076 | 样地核心表（48 字段：省份/样地号 `Estadillo`/年份 `Ano`/调查日期 `FechaIni`·`FechaFin`/郁闭度/土壤/地形…） |
+| **PCDatosMap** | 2079 | 样地定位表（**坐标 `CoorX`/`CoorY` + `Huso` 分区 + 50k 图幅 `Hoja50`**） |
+| **PCMayores** | 48332 | 大树数据（22 字段：树种 `Especie`/胸径 `Dn1`·`Dn2`(mm)/树高 `Ht`(m)/方位 `Rumbo`/距离 `Distanci` 等） |
+| PCMayores3 | 36341 | 大树补充表（19 字段） |
+| PCRegenera | 12980 | 更新/幼苗 |
+| PCEspParc / PCEspMapa | 3793 / 4368 | 样地/地图物种组成 |
+| PCMatorral | 10895 | 灌木 |
+| PCNueEsp | 8973 | 新记录物种 |
 
-### 4. 数据清单（本次已下载 4 个主题）
+> ⚠️ **蓄积量无现成字段**：需从 `PCMayores`（树种 × 胸径 × 树高 + 样地统计扩展系数）按 IFN4 官方材积公式计算样地级蓄积量。
 
-| 文件名 | 主题 | 单位 | 大小 |
-|--------|------|------|------|
-| `tilavuus_vmi1x_1923.tif` | 立木蓄积量（总，全部树种） | m³/ha | 1907.6 MB |
-| `manty_vmi1x_1923.tif` | 蓄积量 — 松树（Mänty） | m³/ha | 1707.1 MB |
-| `kuusi_vmi1x_1923.tif` | 蓄积量 — 云杉（Kuusi） | m³/ha | 1371.0 MB |
-| `koivu_vmi1x_1923.tif` | 蓄积量 — 桦木（Koivu） | m³/ha | 1319.6 MB |
+### 5. 坐标系（⚠️ 重要）
 
-> 完整产品含 45 个主题（另有各树种按材种分级的蓄积量、7 类生物量、平均树高/胸径/林龄/胸高断面积/郁闭度、地类/立地类型等），本次仅下载蓄积量相关 4 个。
+- **Burgos**：样地坐标为 UTM zone 30（`Huso=30`）→ 对应 **EPSG:25830**（ETRS89 / UTM 30N）
+- **Lugo**：`Huso=29` → 对应 **EPSG:25829**
+- **León**：`Huso` 字段存在错误（661 条标为 29），经核验**全部坐标实为 EPSG:25830**（按 25830 转换后 100% 落在 León 省合理范围内：lon[-7.05, -4.78]，lat[42.11, 43.21]）
 
-### 5. 栅格内部格式（已用 rasterio 验证）
+> 使用样地坐标时：**León 统一按 EPSG:25830 处理**；Burgos 按 25830；Lugo 按 25829。
 
-| 属性 | 值 |
-|------|-----|
-| 格式 / Driver | GeoTIFF（`GTiff`） |
-| 波段 / 数据类型 | 单波段，`uint16` |
-| 投影 | **EPSG:3067（ETRS-TM35FIN）** |
-| 尺寸（width × height） | 42240 × 73472 |
-| 像元 | 16m × 16m（transform 左上角起点 `(57632, 7778304)`，向北为负 y） |
-| 压缩 | **LZW**（无损压缩） |
-| 分块 | **tiled，512 × 512 块**，band 顺序（interleave=band） |
-| 金字塔 | 内部 overviews：2/4/8/16/32/64/128/256（8 级，无外部 `.ovr`） |
-| 像元参考 | `AREA_OR_POINT=Area`（面元，中心点代表 16m×16m 区域） |
-| nodata | 32767 |
-| 辅助文件 | 无外部 `.aux.xml` / `.ovr` / `.msk`（信息内嵌） |
-| 值域 | 总蓄积量约 **0 ~ 750 m³/ha**（全国），分类间隔 1 m³/ha |
+#### 5.1 三省空间范围（WGS84，供 S2 下载用）
 
-- 特殊值：
-  - `32766`：应为林地但因云等未计算出结果
-  - `32767`（nodata）：非林地（水域、其他地类）
-
-#### 5.1 空间坐标范围（实测）
-
-4 个主题栅格为同一幅全国镶嵌图，**坐标范围完全一致**。
-
-**投影坐标边界（EPSG:3067，单位 m）**
-
-| 边界 | 值 |
-|------|-----|
-| X 最小（left） | 57,632 |
-| Y 最小（bottom） | 6,602,752 |
-| X 最大（right） | 733,472 |
-| Y 最大（top） | 7,778,304 |
-
-**地理坐标范围（WGS84 经纬度）**
-
-```
-经度 lon：15.50°E  ~  33.13°E
-纬度 lat：59.33°N  ~  70.11°N
-```
-
-**图幅跨度**
-
-- 东西跨度：733472 − 57632 = **675,840 m**（约 676 km）
-- 南北跨度：7778304 − 6602752 = **1,175,552 m**（约 1176 km）
-
-> ⚠️ 上述为**矩形包围盒**，包含芬兰周边海域；真正的林区有效值仅出现在陆地上，非林地/水域像素均为 nodata（32767）。
+| 省份 | 经度范围 | 纬度范围 | 样地数 | S2 tile 数（去重后） |
+|------|---------|---------|--------|---------------------|
+| León | -7.10 ~ -4.72 | 42.05 ~ 43.26 | 1401 | 10 |
+| Burgos | -4.34 ~ -2.52 | 41.46 ~ 43.19 | 2076 | 9 |
+| Lugo | -7.98 ~ -6.80 | 42.33 ~ 43.74 | 2452 | 6 |
 
 ### 6. 输入来源 / 输出去向
 
-- **输入来源**：Paituli 平台分主题下载，解压后即为全国整幅栅格
-- **输出去向**：供 `feature/` 特征提取或 `model/` 建模作为**蓄积量标签/真值**；使用前需按研究区（ROI）裁剪，并与 Sentinel-2 特征栅格重采样对齐（16m → 目标分辨率）
+- **输入来源**：MITECO 官方公开数据（`tcm30-*` 编号），三省份 IFN4 数据包
+- **输出去向**：
+  - 样地坐标 + **样地蓄积量**（从 `PCMayores` 计算的 m³/ha）→ `feature/` 的**标签 y**
+  - GIS 数据库 → 样地空间分布、研究区范围确定
+  - 与 Sentinel-2 特征按样地位置匹配（样地缓冲窗口内取特征）
 
-### 7. 参考引用
+### 7. 参考
 
-- Mäkisara, K., Katila, M. & Peräsaari, J. 2022. *The Multi-Source National Forest Inventory of Finland – methods and results 2017 and 2019.* Natural resources and bioeconomy studies 90/2022.
-- Tomppo, E., Haakana, M., Katila, M. & Peräsaari, J. 2008. *Multi-source national forest inventory - Methods and applications.* Springer.
+- `1.MANUAL_TOMA_DATOS_CAMPO_IFN4.pdf`（野外采集规范）
+- `2.MANUAL_PROCESO_DATOS_IFN4.pdf`（数据处理规范，含材积公式）
+- `3.MANUAL_VALORACIÓN_IFN4.pdf`（价值评估规范）
+
+### 8. Sentinel-2 影像（配套下载）
+
+三省的 S2 影像由 `python -m downloader.spain` 采集（下载记录见 `data/Sentinel2/README.md`）：
+- **León（重点）**：2019 生长季，10 个 tile，约 10.0 GB
+- Burgos：2018 生长季，9 个 tile，约 7.9 GB
+- Lugo：2016 生长季（替代 2009），6 个 tile，约 5.5 GB
